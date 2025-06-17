@@ -1,0 +1,15 @@
+`DagNodes` are allocated in an arena allocator and garbage collected. The key idea is that these objects are constructed in place into fixed‐size “cells” that are allocated in arenas, and the fixed cell size was chosen to be large enough to hold any small object in the system (including all the data from a `DagNode` subclass). In other words, even though every allocation comes from a `MemoryCell` of (for example) 48 bytes, every `DagNode`—or subclass such as `VariableDagNode`—is constructed using placement new into that fixed block. This block is laid out as follows:
+
+1. **Reserved Header Information:**
+ The `MemoryCell` (which derives from `MemoryBlock` and `MemoryInfo`) contains header information required by the garbage collector and the memory manager. This header is always in the same location in the cell (the “`MemoryInfo`” part) so that the GC and related routines can easily find it.
+
+2. **Storage for the Actual Object:**
+ After the header, the remaining bytes of the fixed cell (48 bytes in this example) are used to store the object itself. When you construct a `VariableDagNode` (or any other `DagNode` subclass), the constructor uses placement new to build the full object—including its subclass-specific fields (like the index in `VariableDagNode`)—directly into that space.
+
+3. **Compile-Time Size Decisions:**
+ Since all these objects (or at least the ones intended for allocation in `MemoryCells`) are expected to be small, the system is designed so that every subclass of `DagNode` fits into the fixed cell size. The compiler lays out the full object (base plus derived members) at compile time, and the overall size has to be less than or equal to the size of a `MemoryCell`. In our example, that is 48 bytes. This design guarantees that there is always enough space for the extra fields. The “filler” in `MemoryBlock` (an array of extra machine words) is there to reserve room for subclass information.
+
+4. **Efficient Memory Management:**
+ Because every cell is exactly the same size, the memory manager can allocate these objects very quickly from fixed‐size arenas. The GC doesn’t need to know about the subclass-specific bits—it only manipulates the header (the MemoryInfo part) and treats the rest of the cell as an opaque block. However, when the program needs to call a method or access a field (like `VariableDagNode::index`), it does so on the object that was constructed in that cell; pointer casts and virtual dispatch ensure that the correct subclass behavior is invoked.
+
+**In summary:** Even though a `MemoryCell` is a fixed 48-byte container, that entire block is used to hold both common header information and the complete object data defined by whichever subclass of `DagNode` is being allocated. The design requires that all such objects be small enough to fit into a `MemoryCell`, and by constructing them “in place” in these cells, subclasses like `VariableDagNode` can have their own data members (such as an index) stored at well‑defined offsets within the fixed block.
