@@ -2,7 +2,7 @@
 
 ## What is ExtensionInfo?
 
-`ExtensionInfo` is an abstract base class in the Maude system that records and manages information about which parts of a term were matched and which parts remained unmatched during pattern matching operations. It serves as a foundation for theory-specific extension information classes like `ACU_ExtensionInfo` and `AU_ExtensionInfo`.
+`ExtensionInfo` is an abstract base class that records and manages information about which parts of a term were matched and which parts remained unmatched during pattern matching operations. It serves as a foundation for theory-specific extension information classes like `ACU_ExtensionInfo` and `AU_ExtensionInfo`.
 
 From the code, we can see that `ExtensionInfo` defines a minimal interface:
 
